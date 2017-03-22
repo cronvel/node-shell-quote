@@ -1,6 +1,6 @@
 {
   "name": "@cronvel/shell-quote",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "description": "quote and parse shell commands",
   "main": "index.js",
   "devDependencies": {
