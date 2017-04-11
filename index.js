@@ -100,7 +100,7 @@ function parse (s, env, opts) {
             else if (quote) {
                 if (c === quote) {
                     if (c === BQ) {
-                        return { op: '`' , subcommand: s } ;
+                        return { op: '`' , subCommand: parse(s, env, opts) } ;
                     }
                     quote = false;
                 }
