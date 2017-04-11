@@ -25,8 +25,9 @@ var CONTROL = '(?:' + [
 ].join('|') + ')';
 var META = '|&;()<> \\t';
 var BAREWORD = '(\\\\[\'"' + META + ']|[^\\s\'"' + META + '])+';
-var SINGLE_QUOTE = '"((\\\\"|[^"])*?)"';
-var DOUBLE_QUOTE = '\'((\\\\\'|[^\'])*?)\'';
+var SINGLE_QUOTE = '\'((\\\\\'|[^\'])*?)\'';
+var DOUBLE_QUOTE = '"((\\\\"|[^"])*?)"';
+var BACK_QUOTE   = '`((\\\\`|[^`])*?)`';
 
 var TOKEN = '';
 for (var i = 0; i < 4; i++) {
@@ -52,7 +53,7 @@ exports.parse = function (s, env, opts) {
 function parse (s, env, opts) {
     var chunker = new RegExp([
         '(' + CONTROL + ')', // control chars
-        '(' + BAREWORD + '|' + SINGLE_QUOTE + '|' + DOUBLE_QUOTE + ')*'
+        '(' + BAREWORD + '|' + SINGLE_QUOTE + '|' + DOUBLE_QUOTE + '|' + BACK_QUOTE + ')*'
     ].join('|'), 'g');
     var match = filter(s.match(chunker), Boolean);
     var commented = false;
@@ -81,6 +82,7 @@ function parse (s, env, opts) {
         //     "allonetoken")
         var SQ = "'";
         var DQ = '"';
+        var BQ = '`';
         var DS = '$';
         var BS = opts.escape || '\\';
         var quote = false;
@@ -97,12 +99,15 @@ function parse (s, env, opts) {
             }
             else if (quote) {
                 if (c === quote) {
+                    if (c === BQ) {
+                        return { op: '`' , subcommand: s } ;
+                    }
                     quote = false;
                 }
                 else if (quote == SQ) {
                     out += c;
                 }
-                else { // Double quote
+                else if (quote == DQ) { // Double quote
                     if (c === BS) {
                         i += 1;
                         c = s.charAt(i);
@@ -119,8 +124,25 @@ function parse (s, env, opts) {
                         out += c;
                     }
                 }
+                else { // Back quote
+                    if (c === BS) {
+                        i += 1;
+                        c = s.charAt(i);
+                        if (c === BQ || c === BS || c === DS) {
+                            out += c;
+                        } else {
+                            out += BS + c;
+                        }
+                    }
+                    else if (c === DS) {
+                        out += parseEnvVar();
+                    }
+                    else {
+                        out += c;
+                    }
+                }
             }
-            else if (c === DQ || c === SQ) {
+            else if (c === DQ || c === SQ || c === BQ) {
                 quote = c;
             }
             else if (RegExp('^' + CONTROL + '$').test(c)) {
