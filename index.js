@@ -21,13 +21,14 @@ exports.quote = function (xs) {
 };
 
 var CONTROL = '(?:' + [
-    '\\|\\|', '\\&\\&', ';;', '\\|\\&', '2>&1' , '[&0-9]?>>?' , '[&;()|<]'
+    '\\|\\|', '\\&\\&', ';;', '\\|\\&', '2>&1' , '[&0-9]?>>?' , '\\$\\(' , '[&;()|<]'
 ].join('|') + ')';
 var META = '|&;()<> \\t';
 var BAREWORD = '(\\\\[\'"' + META + ']|[^\\s\'"' + META + '])+';
-var SINGLE_QUOTE = '\'((\\\\\'|[^\'])*?)\'';
+//var BAREWORD = '(\\\\[\'"`' + META + ']|[^\\s\'"`' + META + '])+';
+var SINGLE_QUOTE = "'((\\\\'|[^'])*?)'";
 var DOUBLE_QUOTE = '"((\\\\"|[^"])*?)"';
-var BACK_QUOTE   = '`((\\\\`|[^`])*?)`';
+//var BACK_QUOTE   = '`((\\\\`|[^`])*?)`';
 
 var TOKEN = '';
 for (var i = 0; i < 4; i++) {
@@ -53,9 +54,11 @@ exports.parse = function (s, env, opts) {
 function parse (s, env, opts) {
     var chunker = new RegExp([
         '(' + CONTROL + ')', // control chars
-        '(' + BAREWORD + '|' + SINGLE_QUOTE + '|' + DOUBLE_QUOTE + '|' + BACK_QUOTE + ')*'
+        '(' + BAREWORD + '|' + SINGLE_QUOTE + '|' + DOUBLE_QUOTE + ')*'
+        //'(' + BAREWORD + '|' + SINGLE_QUOTE + '|' + DOUBLE_QUOTE + '|' + BACK_QUOTE + ')*'
     ].join('|'), 'g');
     var match = filter(s.match(chunker), Boolean);
+    //console.log( "match:" , match );
     var commented = false;
 
     if (!match) return [];
@@ -82,7 +85,7 @@ function parse (s, env, opts) {
         //     "allonetoken")
         var SQ = "'";
         var DQ = '"';
-        var BQ = '`';
+        //var BQ = '`';
         var DS = '$';
         var BS = opts.escape || '\\';
         var quote = false;
@@ -99,9 +102,12 @@ function parse (s, env, opts) {
             }
             else if (quote) {
                 if (c === quote) {
+                    /*
                     if (c === BQ) {
-                        return { op: '`' , subCommand: parse(s, env, opts) } ;
+                        console.log( s ) ;
+                        return { op: '`' , subCommand: parse(s.slice( 1 , -1 ), env, opts) } ;
                     }
+                    */
                     quote = false;
                 }
                 else if (quote == SQ) {
@@ -124,6 +130,7 @@ function parse (s, env, opts) {
                         out += c;
                     }
                 }
+                /*
                 else { // Back quote
                     if (c === BS) {
                         i += 1;
@@ -141,8 +148,10 @@ function parse (s, env, opts) {
                         out += c;
                     }
                 }
+                */
             }
-            else if (c === DQ || c === SQ || c === BQ) {
+            else if (c === DQ || c === SQ) {
+            //else if (c === DQ || c === SQ || c === BQ) {
                 quote = c;
             }
             else if (RegExp('^' + CONTROL + '$').test(c)) {
